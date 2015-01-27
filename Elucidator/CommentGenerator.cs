@@ -151,8 +151,17 @@ namespace Elucidator
             if (node is AssignmentExpressionSyntax)
             {
                 var cur = node as AssignmentExpressionSyntax;
-                ret = "//Setting {0} to the value of {1}".FormatWith(cur.Left.ToFullString().Humanize(LetterCasing.LowerCase).Trim(),
+
+                try
+                {
+                    ret = String.Format("//Setting {0} to the value of {1}", cur.Left.ToFullString().Humanize(LetterCasing.LowerCase).Trim(),
                     cur.Right.ToFullString().Humanize(LetterCasing.LowerCase).Trim());
+                }
+                catch (InvalidOperationException)
+                {
+                    Console.WriteLine("\t\tThat one had some issues.");
+                }
+                
                 //ret += ", and {0}".FormatWith(OperatorComment((IdentifierNameSyntax)cur.Left, (IdentifierNameSyntax)cur.Right, cur.OperatorToken.CSharpKind()));
             }
 

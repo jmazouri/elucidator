@@ -64,7 +64,16 @@ namespace Elucidator
 
                             try
                             {
-                                File.WriteAllText("Elucidated_Project/" + document.Name, cleanSource.ToFullString());
+                                List<string> path = new List<string>() { "Elucidated_Project" };
+                                path.AddRange(document.Folders);
+                                string folderpath = Path.Combine(path.ToArray());
+
+                                if (!Directory.Exists(folderpath))
+                                {
+                                    Directory.CreateDirectory(folderpath);
+                                }
+
+                                File.WriteAllText(Path.Combine(folderpath, document.Name), cleanSource.ToFullString());
                             }
                             catch (Exception ex)
                             {
