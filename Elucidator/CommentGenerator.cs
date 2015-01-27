@@ -131,7 +131,7 @@ namespace Elucidator
                 }
                 else
                 {
-                    ret = "//A new {0} field".FormatWith(cur.Declaration.Type.ToFullString().Humanize());
+                    ret = "//A new {0} field".FormatWith(cur.Declaration.Type.ToFullString().Humanize(LetterCasing.LowerCase).Trim());
                 }
 
             }
@@ -145,14 +145,14 @@ namespace Elucidator
             if (node is EnumDeclarationSyntax)
             {
                 var cur = node as EnumDeclarationSyntax;
-                ret = "//Declaring the {0} enumeration.".FormatWith(cur.Identifier.ToFullString().Trim().Humanize(LetterCasing.LowerCase));
+                ret = "//Declaring the {0} enumeration.".FormatWith(cur.Identifier.ToFullString().Humanize(LetterCasing.LowerCase).Trim());
             }
 
             if (node is AssignmentExpressionSyntax)
             {
                 var cur = node as AssignmentExpressionSyntax;
-                ret = "//Setting {0} to the value of {1}".FormatWith(cur.Left.ToFullString().Trim().Humanize(LetterCasing.LowerCase),
-                    cur.Right.ToFullString().Trim().Humanize(LetterCasing.LowerCase));
+                ret = "//Setting {0} to the value of {1}".FormatWith(cur.Left.ToFullString().Humanize(LetterCasing.LowerCase).Trim(),
+                    cur.Right.ToFullString().Humanize(LetterCasing.LowerCase).Trim());
                 //ret += ", and {0}".FormatWith(OperatorComment((IdentifierNameSyntax)cur.Left, (IdentifierNameSyntax)cur.Right, cur.OperatorToken.CSharpKind()));
             }
 
@@ -185,10 +185,13 @@ namespace Elucidator
                         {
                             var expression = (BinaryExpressionSyntax)cur.Variables.First().Initializer.Value;
 
-                            var leftName = (IdentifierNameSyntax)expression.Left;
-                            var rightName = (IdentifierNameSyntax)expression.Right;
+                            var leftName = expression.Left as IdentifierNameSyntax;
+                            var rightName = expression.Right as IdentifierNameSyntax;
 
-                            ret += ", and {0}".FormatWith(OperatorComment(leftName, rightName, expression.OperatorToken.CSharpKind()));
+                            if (leftName != null && rightName != null)
+                            {
+                                ret += ", and {0}".FormatWith(OperatorComment(leftName, rightName, expression.OperatorToken.CSharpKind()));
+                            }
                         }
                     }
                 }
