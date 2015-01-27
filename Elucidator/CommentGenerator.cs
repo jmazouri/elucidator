@@ -181,7 +181,7 @@ namespace Elucidator
 
                     if (cur.Variables.Any())
                     {
-                        if (cur.Variables.First().Initializer.Value is BinaryExpressionSyntax)
+                        if (cur.Variables.First().Initializer != null && cur.Variables.First().Initializer.Value is BinaryExpressionSyntax)
                         {
                             var expression = (BinaryExpressionSyntax)cur.Variables.First().Initializer.Value;
 
