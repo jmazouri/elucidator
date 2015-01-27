@@ -27,6 +27,44 @@ namespace Elucidator
             return false;
         }
 
+        private static string OperatorComment(IdentifierNameSyntax left, IdentifierNameSyntax right, SyntaxKind op)
+        {
+            string ret = "";
+
+            switch (op)
+            {
+                case SyntaxKind.PlusToken:
+                    ret = "adding {0} and {1} together";
+                    break;
+                case SyntaxKind.MinusToken:
+                    ret = "subtracting {0} from {1}";
+                    break;
+                case SyntaxKind.AsteriskToken:
+                    ret = "multiplying {0} by {1}";
+                    break;
+                case SyntaxKind.SlashToken:
+                    ret = "dividing {0} by {1}";
+                    break;
+                case SyntaxKind.PercentToken:
+                    ret = "get the remainder (modulus) after dividing {0} by {1}";
+                    break;
+                case SyntaxKind.PlusEqualsToken:
+                    ret = "add {1} to {0}";
+                    break;
+                case SyntaxKind.MinusEqualsToken:
+                    ret = "remove {1} from {0}";
+                    break;
+                default:
+                    ret = "doing some quick math with {0} and {1}";
+                    break;
+            }
+
+            ret = ret.FormatWith(left.Identifier.ValueText.Humanize(LetterCasing.LowerCase),
+                right.Identifier.ValueText.Humanize(LetterCasing.LowerCase));
+
+            return ret;
+        }
+
         public static string GetComment(SyntaxNode node)
         {
             string ret = "//This is a {0}".FormatWith(node.CSharpKind().Humanize());
@@ -52,7 +90,7 @@ namespace Elucidator
                     type = "interface";
                 }
 
-                ret = "//Defining the {0} {1}".FormatWith(cur.Identifier.ValueText.Humanize(), type);
+                ret = "//Defining the {0} {1}".FormatWith(cur.Identifier.ValueText.Humanize(LetterCasing.LowerCase), type);
             }
 
             if (node is MethodDeclarationSyntax)
@@ -62,7 +100,7 @@ namespace Elucidator
                 string returnType = cur.ReturnType.ToFullString().Trim();
                 if (returnType == "void")
                 {
-                    ret = "//Declaring the {0} method".FormatWith(cur.Identifier.ValueText.Humanize());
+                    ret = "//Declaring the {0} method".FormatWith(cur.Identifier.ValueText.Humanize(LetterCasing.LowerCase));
                 }
                 else
                 {
@@ -71,11 +109,11 @@ namespace Elucidator
                         var genericSyntax = cur.ReturnType as GenericNameSyntax;
                         var generic = genericSyntax.TypeArgumentList.Arguments[0].ToFullString();
 
-                        ret = "//Declaring the {0} method, returns a list of {1}".FormatWith(cur.Identifier.ValueText.Humanize(), generic.Pluralize(true));
+                        ret = "//Declaring the {0} method, returns a list of {1}".FormatWith(cur.Identifier.ValueText.Humanize(LetterCasing.LowerCase), generic.Pluralize(true));
                     }
                     else
                     {
-                        ret = "//Declaring the {0} method, returns a {1}".FormatWith(cur.Identifier.ValueText.Humanize(), cur.ReturnType.ToFullString().Humanize());
+                        ret = "//Declaring the {0} method, returns a {1}".FormatWith(cur.Identifier.ValueText.Humanize(LetterCasing.LowerCase), cur.ReturnType.ToFullString().Humanize());
                     }
                 }
             }
@@ -107,7 +145,21 @@ namespace Elucidator
             if (node is EnumDeclarationSyntax)
             {
                 var cur = node as EnumDeclarationSyntax;
-                ret = "//Declaring the {0} enumeration.".FormatWith(cur.Identifier.ToFullString().Trim().Humanize());
+                ret = "//Declaring the {0} enumeration.".FormatWith(cur.Identifier.ToFullString().Trim().Humanize(LetterCasing.LowerCase));
+            }
+
+            if (node is AssignmentExpressionSyntax)
+            {
+                var cur = node as AssignmentExpressionSyntax;
+                ret = "//Setting {0} to the value of {1}".FormatWith(cur.Left.ToFullString().Trim().Humanize(LetterCasing.LowerCase),
+                    cur.Right.ToFullString().Trim().Humanize(LetterCasing.LowerCase));
+                //ret += ", and {0}".FormatWith(OperatorComment((IdentifierNameSyntax)cur.Left, (IdentifierNameSyntax)cur.Right, cur.OperatorToken.CSharpKind()));
+            }
+
+            if (node is TryStatementSyntax)
+            {
+                var cur = node as TryStatementSyntax;
+                ret = "//Doing some error handling";
             }
 
             if (node is VariableDeclarationSyntax)
@@ -126,6 +178,19 @@ namespace Elucidator
                 else
                 {
                     ret = "//Declaring the {0} {1}".FormatWith(typename, cur.Variables[0].Identifier.ValueText);
+
+                    if (cur.Variables.Any())
+                    {
+                        if (cur.Variables.First().Initializer.Value is BinaryExpressionSyntax)
+                        {
+                            var expression = (BinaryExpressionSyntax)cur.Variables.First().Initializer.Value;
+
+                            var leftName = (IdentifierNameSyntax)expression.Left;
+                            var rightName = (IdentifierNameSyntax)expression.Right;
+
+                            ret += ", and {0}".FormatWith(OperatorComment(leftName, rightName, expression.OperatorToken.CSharpKind()));
+                        }
+                    }
                 }
             }
 
@@ -133,7 +198,17 @@ namespace Elucidator
             {
                 var cur = node as PropertyDeclarationSyntax;
 
-                bool isReadOnly = !cur.AccessorList.Accessors.Any(d => d.IsKind(SyntaxKind.SetAccessorDeclaration));
+                bool isReadOnly = false;
+
+                if (cur.AccessorList == null)
+                {
+                    isReadOnly = true;
+                }
+                else
+                {
+                    isReadOnly = !cur.AccessorList.Accessors.Any(d => d.IsKind(SyntaxKind.SetAccessorDeclaration));
+                }
+                
 
                 if (IsList(cur.Type.ToFullString()) && cur.Type is GenericNameSyntax)
                 {

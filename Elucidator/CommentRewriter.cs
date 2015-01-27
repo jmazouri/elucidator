@@ -16,9 +16,23 @@ namespace Elucidator
 
         }
 
-        private T GetCommentForNode<T>(SyntaxNode node) where T : class
+        private T GetCommentForNode<T>(SyntaxNode node) where T : SyntaxNode
         {
-            return SyntaxTreeHelper.AddCommentToNode(node) as T;
+            var newComment = SyntaxFactory.Comment(CommentGenerator.GetComment(node));
+
+            SyntaxNode nodeWithComment = node;
+
+            if (node.HasLeadingTrivia)
+            {
+                var endtrivia = node.GetLeadingTrivia().Last(d => d.IsKind(SyntaxKind.WhitespaceTrivia));
+                nodeWithComment = node.InsertTriviaAfter(endtrivia, new List<SyntaxTrivia> { newComment });
+            }
+            else
+            {
+                nodeWithComment = node.WithLeadingTrivia(newComment).NormalizeWhitespace();
+            }
+
+            return nodeWithComment as T;
         }
 
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
@@ -69,6 +83,16 @@ namespace Elucidator
             }
 
             return base.VisitVariableDeclaration(node);
+        }
+
+        public override SyntaxNode VisitTryStatement(TryStatementSyntax node)
+        {
+            return base.VisitTryStatement(GetCommentForNode<TryStatementSyntax>(node));
+        }
+
+        public override SyntaxNode VisitAssignmentExpression(AssignmentExpressionSyntax node)
+        {
+            return base.VisitAssignmentExpression(GetCommentForNode<AssignmentExpressionSyntax>(node));
         }
     }
 }

@@ -25,7 +25,9 @@ namespace TestNancy.App.Models
 
         public static void Init()
         {
-            
+            int numberofgames = 5;
+            int numberoftools = 30;
+            int totallibrary = numberofgames + numberoftools;
         }
 
         public void WhatYouDo()
@@ -77,8 +79,16 @@ namespace TestNancy.App.Models
                 await LoadGames();
             });
 
-            task.Start();
-            task.Result.Wait();
+            try
+            {
+                task.Start();
+                task.Result.Wait();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            
             
         }
     }

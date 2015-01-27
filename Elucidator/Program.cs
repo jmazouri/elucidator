@@ -15,23 +15,27 @@ namespace Elucidator
 {
     public class Program
     {
-        static void Main(string[] args)
+        static SyntaxNode CommentNode(SyntaxNode node)
         {
             CommentRewriter rewriter = new CommentRewriter();
+            SyntaxNode newSource = rewriter.Visit(node);
+            SyntaxNode cleanSource = (CompilationUnitSyntax)Formatter.Format(newSource, MSBuildWorkspace.Create());
+            
+            return cleanSource;;
+        }
 
+        static void Main(string[] args)
+        {
             if (args.Length > 0)
             {
                 string extension = Path.GetExtension(args[0]);
 
-                if (extension != ".sln")
+                if (extension != ".sln" && extension != ".cs")
                 {
-                    Console.WriteLine("Invalid filetype. Needs to be a visual studio solution (sln).");
+                    Console.WriteLine("Invalid filetype. Needs to be a visual studio solution (sln) or c# file (cs).");
+                    Console.ReadLine();
+                    return;
                 }
-
-                var workspace = MSBuildWorkspace.Create();
-                var solution = workspace.OpenSolutionAsync(args[0]).Result;
-                
-                Console.WriteLine("Loaded solution {0}", workspace.CurrentSolution.Id.Id);
 
                 if (Directory.Exists("Elucidated_Project"))
                 {
@@ -40,30 +44,56 @@ namespace Elucidator
 
                 Directory.CreateDirectory("Elucidated_Project");
 
-                foreach (var project in solution.Projects)
+                if (extension == ".sln")
                 {
-                    Console.WriteLine("\tParsing project {0}", project.Name);
-                    
-                    foreach (var document in project.Documents)
+                    var workspace = MSBuildWorkspace.Create();
+                    var solution = workspace.OpenSolutionAsync(args[0]).Result;
+
+                    Console.WriteLine("Loaded solution {0}", workspace.CurrentSolution.Id.Id);
+
+                    foreach (var project in solution.Projects)
                     {
-                        Console.WriteLine("\t\tLoading document {0}", document.Name);
-                        SyntaxTree tree = document.GetSyntaxTreeAsync().Result;
+                        Console.WriteLine("\tParsing project {0}", project.Name);
 
-                        SyntaxNode newSource = rewriter.Visit(tree.GetRoot());
-                        SyntaxNode cleanSource = SyntaxTreeHelper.FormatTree(newSource);
+                        foreach (var document in project.Documents)
+                        {
+                            Console.WriteLine("\t\tLoading document {0}", document.Name);
+                            SyntaxTree tree = document.GetSyntaxTreeAsync().Result;
 
-                        try
-                        {
-                            File.WriteAllText("Elucidated_Project/" + document.Name, cleanSource.ToFullString());
+                            SyntaxNode cleanSource = CommentNode(tree.GetRoot());
+
+                            try
+                            {
+                                File.WriteAllText("Elucidated_Project/" + document.Name, cleanSource.ToFullString());
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Couldn't save! {0}", ex.Message);
+                            }
+
                         }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("Couldn't save! {0}", ex.Message);
-                            throw;
-                        }
-  
                     }
                 }
+                else
+                {
+                    string fileContent = File.ReadAllText(args[0]);
+                    SyntaxTree tree = CSharpSyntaxTree.ParseText(fileContent);
+                    SyntaxNode singleCleanSource = CommentNode(tree.GetRoot());
+
+                    Console.WriteLine(singleCleanSource.ToFullString());
+
+                    try
+                    {
+                        File.WriteAllText("Elucidated_Project/" + Path.GetFileName(args[0]), singleCleanSource.ToFullString());
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Couldn't save! {0}", ex.Message);
+                    }
+                }
+                
+                
+
 
                 //workspace.TryApplyChanges(solution);
             }
