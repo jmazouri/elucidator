@@ -67,7 +67,7 @@ namespace Elucidator
 
         public static string GetComment(SyntaxNode node)
         {
-            string ret = "//This is a {0}".FormatWith(node.CSharpKind().Humanize());
+            string ret = "//This is a {0}".FormatWith(node.Kind().Humanize());
 
             if (node is TypeDeclarationSyntax)
             {
@@ -199,7 +199,7 @@ namespace Elucidator
 
                             if (leftName != null && rightName != null)
                             {
-                                ret += ", and {0}".FormatWith(OperatorComment(leftName, rightName, expression.OperatorToken.CSharpKind()));
+                                ret += ", and {0}".FormatWith(OperatorComment(leftName, rightName, expression.OperatorToken.Kind()));
                             }
                         }
                     }
