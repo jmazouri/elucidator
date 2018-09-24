@@ -18,7 +18,11 @@ namespace Elucidator
 
         private T GetCommentForNode<T>(SyntaxNode node) where T : SyntaxNode
         {
-            var newComment = SyntaxFactory.Comment(CommentGenerator.GetComment(node));
+            var generated = CommentGenerator.GetComment(node);
+
+            if (generated == null) { return node as T; }
+
+            var newComment = SyntaxFactory.Comment(generated);
 
             SyntaxNode nodeWithComment = node;
 
@@ -93,6 +97,11 @@ namespace Elucidator
         public override SyntaxNode VisitAssignmentExpression(AssignmentExpressionSyntax node)
         {
             return base.VisitAssignmentExpression(GetCommentForNode<AssignmentExpressionSyntax>(node));
+        }
+
+        public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
+        {
+            return base.VisitInvocationExpression(GetCommentForNode<InvocationExpressionSyntax>(node));
         }
     }
 }

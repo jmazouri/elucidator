@@ -65,9 +65,23 @@ namespace Elucidator
             return ret;
         }
 
+        private static List<string> seenNodes = new List<string>();
+
         public static string GetComment(SyntaxNode node)
         {
             string ret = "//This is a {0}".FormatWith(node.Kind().Humanize());
+
+            if (node is InvocationExpressionSyntax invc && !(invc.Parent.Parent is AssignmentExpressionSyntax))
+            {
+                seenNodes.Add(invc.ToString());
+
+                if (seenNodes.Contains(invc.Parent.ToString().Substring(0, invc.Parent.ToString().Length - 1)))
+                {
+                    return null;
+                }
+
+                ret = $"//Calling the {invc.Expression.ToString().Humanize(LetterCasing.LowerCase)} method";
+            }
 
             if (node is TypeDeclarationSyntax)
             {
